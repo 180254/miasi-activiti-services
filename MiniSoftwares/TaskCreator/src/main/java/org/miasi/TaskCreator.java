@@ -140,13 +140,16 @@ public class TaskCreator {
             String newProcessId = activity$runProcess(config, processId, metadataForActivity);
 
             Map<String, String> metadataForTrello = ImmutableMap.of(
+                    "task_creator_email", emailField.getText(),
                     "activity_process_id", newProcessId);
 
             statusArea.append("Trello: creating card comment with metadataForActivity.\n");
             trello$addCommentToCard(config, cardCreated.getId(), mapToString(metadataForTrello));
 
             statusArea.append("Done: task added.\n");
+            statusArea.append("   - info about Trello\n");
             statusArea.append(mapToString(metadataForActivity) + "\n");
+            statusArea.append("   - info about Activity\n");
             statusArea.append(mapToString(metadataForTrello) + "\n");
 
             JOptionPane.showMessageDialog(null,
