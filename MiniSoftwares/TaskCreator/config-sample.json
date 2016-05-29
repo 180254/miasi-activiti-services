@@ -1,5 +1,9 @@
 {
   "trelloKey": "",
   "trelloToken": "",
-  "trelloBoardId": "AxEs5cuH"
+  "trelloBoardId": "AxEs5cuH",
+  "activityRestUrl": "http://127.0.0.1:8080/activiti-rest/",
+  "activityUsername": "kermit",
+  "activityPassword": "kermit",
+  "activityProcessName": "Review sales lead"
 }

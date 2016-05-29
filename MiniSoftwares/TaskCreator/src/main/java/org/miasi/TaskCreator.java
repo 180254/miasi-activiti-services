@@ -1,6 +1,8 @@
 package org.miasi;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.io.BaseEncoding;
+import com.julienvey.trello.Trello;
 import com.julienvey.trello.domain.Board;
 import com.julienvey.trello.domain.Card;
 import com.julienvey.trello.domain.TList;
@@ -9,16 +11,18 @@ import com.julienvey.trello.impl.TrelloImpl;
 import com.julienvey.trello.impl.http.ApacheHttpClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.EmailValidator;
+import org.apache.http.Header;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.client.fluent.Response;
 import org.apache.http.entity.ContentType;
+import org.apache.http.message.BasicHeader;
+import org.unbescape.uri.UriEscape;
 
 import javax.swing.*;
 import javax.swing.text.DefaultCaret;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class TaskCreator {
 
@@ -68,10 +72,14 @@ public class TaskCreator {
             trelloApi = new TrelloImpl(config.getTrelloKey(), config.getTrelloToken(), new ApacheHttpClient());
 
         } catch (IOException ex) {
-            submitButton.setEnabled(false);
-            emailField.setEditable(false);
-            descArea.setEditable(false);
+            setEnabled(false);
             submitButton.setText("CONFIG ERROR");
+
+            String msg = "Error!\n" +
+                    "Config file doesn't exist or has bad structure.\n" +
+                    "Please fix it and restart app.";
+
+            statusArea.append(msg);
             JOptionPane.showMessageDialog(null, "Error!\n" +
                             "Config file doesn't exist or has bad structure.\n" +
                             "Please fix it and restart app.",
@@ -106,23 +114,33 @@ public class TaskCreator {
             }
 
             statusArea.append("Trello: creating card domain.\n");
-            Card card = trello$createCard();
+            Card card = trello$createCard(nameField.getText(), descArea.getText());
 
             statusArea.append("Trello: obtaining proper list.\n");
-            TList tList = trello$getProperList();
+            TList tList = trello$getListByName(trelloApi, config.getTrelloBoardId(), "New");
+
+            statusArea.append("Activity: obtaining process id.\n");
+            String processId = activity$getProcessId(config, config.getActivityProcessName());
 
             statusArea.append("Trello: creating card on trello.\n");
             Card cardCreated = tList.createCard(card);
 
-            List<String> metadata = new ArrayList<>();
-            metadata.add(cardCreated.getUrl());
-            metadata.add(cardCreated.getId());
-            metadata.add(emailField.getText());
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put("trello_card_url", cardCreated.getUrl());
+            metadata.put("trello_card_id", cardCreated.getId());
+            metadata.put("creator_email", emailField.getText());
+
+            statusArea.append("Activity: running new process instance.\n");
+            List<String> runProcess = activity$runProcess(config, processId, metadata);
+
+            metadata.put("activity_process_id", runProcess.get(0));
+            metadata.put("activity_process_url", runProcess.get(1));
 
             statusArea.append("Trello: creating card comment with metadata.\n");
-            trello$addCommentToCard(cardCreated.getId(), StringUtils.join(metadata, "\n"));
+            trello$addCommentToCard(config, cardCreated.getId(), StringUtils.join(metadata, "\n"));
 
-            statusArea.append("Done: task added. " + metadata.get(0) + "\n");
+            statusArea.append("Done: task added.\n");
+            statusArea.append(metadata.toString());
 
             JOptionPane.showMessageDialog(null,
                     "Task successfully added.",
@@ -144,25 +162,27 @@ public class TaskCreator {
         }
     }
 
-    public Card trello$createCard() {
+    public static Card trello$createCard(String name, String desc) {
         Card card = new Card();
-        card.setName(nameField.getText());
-        card.setDesc(descArea.getText());
+        card.setName(name);
+        card.setDesc(desc);
         return card;
     }
 
-    public TList trello$getProperList() {
-        Board board = trelloApi.getBoard(config.getTrelloBoardId());
+    public static TList trello$getListByName(Trello trelloApi, String boardId, String name) {
+        Board board = trelloApi.getBoard(boardId);
         List<TList> tLists = board.fetchLists();
 
-        if (tLists.size() == 0 || !tLists.get(0).getName().equals("New")) {
-            throw new TrelloHttpException("'New' list not found on expected pos.");
+        for (TList tList : tLists) {
+            if (tList.getName().equals(name)) {
+                return tList;
+            }
         }
 
-        return tLists.get(0);
+        throw new TrelloHttpException("List " + name + "not found");
     }
 
-    public void trello$addCommentToCard(String cardId, String comment) {
+    public static void trello$addCommentToCard(Config config, String cardId, String comment) {
         String addCommentUrl = String.format(
                 "https://api.trello.com/1/cards/%s/actions/comments?key=%s&token=%s",
                 cardId,
@@ -187,6 +207,70 @@ public class TaskCreator {
         }
     }
 
+    public static Header activity$getAuthHeader(Config config) {
+        String activityBasic = config.getActivityUsername() + ":" + config.getActivityPassword();
+        String activityBasic64 = BaseEncoding.base64().encode(activityBasic.getBytes());
+        String headerVal = "Basic " + activityBasic64;
 
+        return new BasicHeader("Authorization", headerVal);
+    }
+
+    public static String activity$getProcessId(Config config, String name) {
+        String processDefinitionUrl = String.format(
+                "%s/service/repository/process-definitions?name=%s",
+                config.getActivityRestUrl(),
+                UriEscape.escapeUriQueryParam(name));
+
+        try {
+            String content = Request.Get(processDefinitionUrl)
+                    .addHeader(activity$getAuthHeader(config))
+                    .execute().returnContent().asString();
+
+
+            Map<String, Object> contentMap = new ObjectMapper().readerFor(HashMap.class).readValue(content);
+            List<Object> data = (List<Object>) contentMap.get("data");
+            Map<String, Object> data0 = (Map<String, Object>) data.get(0);
+
+            return (String) data0.get("id");
+
+        } catch (Exception e) {
+            throw new ActivityException(e);
+        }
+    }
+
+    public static List<String> activity$runProcess(Config config, String processId, Map<String, String> variables) {
+        String processInstanceUrl = String.format(
+                "%s/service/runtime/process-instances",
+                config.getActivityRestUrl());
+
+        try {
+
+            List<Map<String, String>> variablesList = new ArrayList<>();
+            for (Map.Entry<String, String> entry : variables.entrySet()) {
+                Map<String, String> varMap = new HashMap<>();
+                varMap.put("name", entry.getKey());
+                varMap.put("value", entry.getValue());
+                variablesList.add(varMap);
+            }
+
+            HashMap<String, Object> params = new HashMap<>();
+            params.put("processDefinitionId", processId);
+            params.put("variables", variablesList);
+
+            String paramsJson = new ObjectMapper().writerFor(HashMap.class).writeValueAsString(params);
+
+            String content = Request.Post(processInstanceUrl)
+                    .addHeader(activity$getAuthHeader(config))
+                    .addHeader("Content-Type", "application/json")
+                    .bodyString(paramsJson, ContentType.APPLICATION_JSON)
+                    .execute().returnContent().asString();
+
+            Map<String, String> contentMap = new ObjectMapper().readerFor(HashMap.class).readValue(content);
+            return Arrays.asList(contentMap.get("id"), contentMap.get("url"));
+
+        } catch (Exception e) {
+            throw new ActivityException(e);
+        }
+    }
 }
 
