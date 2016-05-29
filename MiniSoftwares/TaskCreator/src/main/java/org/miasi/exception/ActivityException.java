@@ -1,9 +1,6 @@
-package org.miasi;
+package org.miasi.exception;
 
-public class ActivityException extends RuntimeException {
-
-    public ActivityException() {
-    }
+public class ActivityException extends Exception {
 
     public ActivityException(String message) {
         super(message);
