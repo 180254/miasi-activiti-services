@@ -152,22 +152,25 @@ public class TaskCreator {
             statusArea.append("   - info about Activity\n");
             statusArea.append(mapToString(metadataForTrello) + "\n");
 
+            nameField.setText("");
+            descArea.setText("");
+
             JOptionPane.showMessageDialog(null,
                     "Task successfully added.",
                     "OK", JOptionPane.INFORMATION_MESSAGE);
 
         } catch (IllegalArgumentException ex) {
-            String msg = "Warning! " + ex.getMessage();
+            String msg = "Validation error! " + ex.getMessage();
             statusArea.append(msg + "\n");
-            JOptionPane.showMessageDialog(null, msg, "Warning", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.WARNING_MESSAGE);
 
         } catch (TrelloException ex) {
-            String msg = "Error! Something go wrong with Trello. Code returned:\n" + ex.getMessage();
+            String msg = "Error! Something go wrong with Trello. Exception:\n" + ex.getClass();
             statusArea.append(msg + "\n");
             JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.WARNING_MESSAGE);
 
         } catch (ActivityException ex) {
-            String msg = "Error! Something go wrong with Activity. Code returned:\n" + ex.getMessage();
+            String msg = "Error! Something go wrong with Activity. Exception:\n" + ex.getClass();
             statusArea.append(msg + "\n");
             JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.WARNING_MESSAGE);
 
