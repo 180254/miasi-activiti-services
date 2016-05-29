@@ -14,6 +14,7 @@ import org.apache.http.client.fluent.Response;
 import org.apache.http.entity.ContentType;
 
 import javax.swing.*;
+import javax.swing.text.DefaultCaret;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,12 +30,21 @@ public class TaskCreator {
     private JTextField nameField;
     private JTextArea descArea;
     private JButton submitButton;
+    private JTextArea statusArea;
 
     public TaskCreator() {
+        DefaultCaret historyCaret = (DefaultCaret) statusArea.getCaret();
+        historyCaret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+        statusArea.setEditable(false);
         submitButton.addActionListener(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                submitButtonClicked();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        submitButtonClicked();
+                    }
+                }).start();
             }
         });
     }
@@ -69,41 +79,68 @@ public class TaskCreator {
         }
     }
 
+    public void setEnabled(boolean enabled) {
+        submitButton.setEnabled(enabled);
+        emailField.setEditable(enabled);
+        nameField.setEditable(enabled);
+        descArea.setEditable(enabled);
+    }
+
     public void submitButtonClicked() {
         try {
+            setEnabled(false);
+
+            statusArea.append("Validating: email.\n");
             if (!EmailValidator.getInstance().isValid(emailField.getText())) {
-                throw new IllegalArgumentException("Given email is not proper");
+                throw new IllegalArgumentException("Given email is not proper.");
             }
+
+            statusArea.append("Validating: issue name.\n");
             if (StringUtils.isBlank(nameField.getText())) {
                 throw new IllegalArgumentException("Issue name cannot be blank.");
             }
+
+            statusArea.append("Validating: issue description.\n");
             if (StringUtils.isBlank(descArea.getText())) {
                 throw new IllegalArgumentException("Issue description cannot be blank.");
             }
 
-
+            statusArea.append("Trello: creating card domain.\n");
             Card card = trello$createCard();
+
+            statusArea.append("Trello: obtaining proper list.\n");
             TList tList = trello$getProperList();
+
+            statusArea.append("Trello: creating card on trello.\n");
             Card cardCreated = tList.createCard(card);
 
             List<String> metadata = new ArrayList<>();
+            metadata.add(cardCreated.getUrl());
             metadata.add(cardCreated.getId());
+            metadata.add(emailField.getText());
 
+            statusArea.append("Trello: creating card comment with metadata.\n");
             trello$addCommentToCard(cardCreated.getId(), StringUtils.join(metadata, "\n"));
+
+            statusArea.append("Done: task added. " + metadata.get(0) + "\n");
 
             JOptionPane.showMessageDialog(null,
                     "Task successfully added.",
                     "OK", JOptionPane.INFORMATION_MESSAGE);
 
         } catch (IllegalArgumentException ex) {
-            JOptionPane.showMessageDialog(null,
-                    "Error! " + ex.getMessage(),
-                    "Warning", JOptionPane.WARNING_MESSAGE);
+            String msg = "Warning! " + ex.getMessage();
+            statusArea.append(msg + "\n");
+            JOptionPane.showMessageDialog(null, msg, "Warning", JOptionPane.WARNING_MESSAGE);
 
         } catch (TrelloHttpException ex) {
-            JOptionPane.showMessageDialog(null,
-                    "Error! Something go wrong. Trello returned:\n" + ex.getMessage(),
-                    "Error", JOptionPane.WARNING_MESSAGE);
+            String msg = "Error! Something go wrong. Trello returned:\n" + ex.getMessage();
+            statusArea.append(msg + "\n");
+            JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.WARNING_MESSAGE);
+
+        } finally {
+            setEnabled(true);
+            statusArea.append("\n");
         }
     }
 
