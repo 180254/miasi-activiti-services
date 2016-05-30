@@ -11,6 +11,7 @@ import com.julienvey.trello.domain.TList;
 import com.julienvey.trello.impl.TrelloImpl;
 import com.julienvey.trello.impl.http.ApacheHttpClient;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.apache.http.Header;
 import org.apache.http.client.fluent.Request;
@@ -167,11 +168,19 @@ public class TaskCreator {
         } catch (TrelloException ex) {
             String msg = "Error! Something go wrong with Trello. Exception:\n" + ex.getClass();
             statusArea.append(msg + "\n");
+            statusArea.append(ExceptionUtils.getStackTrace(ex) + "\n");
             JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.WARNING_MESSAGE);
 
         } catch (ActivityException ex) {
             String msg = "Error! Something go wrong with Activity. Exception:\n" + ex.getClass();
             statusArea.append(msg + "\n");
+            statusArea.append(ExceptionUtils.getStackTrace(ex) + "\n");
+            JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.WARNING_MESSAGE);
+
+        } catch (Exception ex) {
+            String msg = "Error! Something go wrong with ?. Exception:\n" + ex.getClass();
+            statusArea.append(msg + "\n");
+            statusArea.append(ExceptionUtils.getStackTrace(ex) + "\n");
             JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.WARNING_MESSAGE);
 
         } finally {

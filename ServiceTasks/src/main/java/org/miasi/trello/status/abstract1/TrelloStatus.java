@@ -46,7 +46,7 @@ public class TrelloStatus {
             logger.log("Getting new list.");
             TList newList = trello$getListByName(trelloApi, card.getIdBoard(), newListName);
 
-            logger.log("Moving list.");
+            logger.log("Moving card.");
             card.setIdList(newList.getId());
             card.update();
 
