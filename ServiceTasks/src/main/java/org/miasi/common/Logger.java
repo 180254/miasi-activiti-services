@@ -1,4 +1,4 @@
-package org.miasi;
+package org.miasi.common;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -16,7 +18,9 @@ import static java.nio.file.StandardOpenOption.CREATE;
 
 public class Logger {
 
+    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private int loggerId = new Random().nextInt(1000);
+
     private String loggerName;
 
     private Logger(String loggerName) {
@@ -29,11 +33,15 @@ public class Logger {
 
     public void log(Object message) {
         try {
-            Path path = Paths.get("ST_Log_" + loggerName + ".txt");
-            String message2 = loggerId + "-" + message.toString();
+            Path path = Paths.get(String.format("ST_Log_%s.txt", loggerName));
+
+            String timestamp = LocalDateTime.now().format(formatter);
+            String message2 = String.format("%d-%s-%s", loggerId, timestamp, message.toString());
 
             if (message instanceof Throwable) {
-                message2 = message2 + "\r\n" + ExceptionUtils.getStackTrace((Throwable) message);
+                message2 = String.format("%s\r\n%s",
+                        message2,
+                        ExceptionUtils.getStackTrace((Throwable) message));
             }
 
             List<String> strings = Collections.singletonList(message2);

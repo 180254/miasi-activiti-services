@@ -6,8 +6,8 @@ import com.julienvey.trello.domain.Card;
 import com.julienvey.trello.domain.TList;
 import com.julienvey.trello.impl.TrelloImpl;
 import com.julienvey.trello.impl.http.ApacheHttpClient;
-import org.miasi.Logger;
-import org.miasi.config.Config;
+import org.miasi.common.Config;
+import org.miasi.common.Logger;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,7 +33,7 @@ public class TrelloStatus {
         }
     }
 
-    public void change(String trelloCardId, String newListName) {
+    public void change(String trelloCardId, String newListName) throws Exception {
         try {
             logger.log("STARTED for TRELLO_CARD_ID=" + trelloCardId + ", LIST=" + newListName);
 
@@ -55,6 +55,8 @@ public class TrelloStatus {
         } catch (Exception ex) {
             logger.log("Failed!");
             logger.log(ex);
+
+//            throw ex;
         }
     }
 

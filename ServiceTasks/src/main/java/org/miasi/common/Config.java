@@ -1,14 +1,13 @@
-package org.miasi.config;
+package org.miasi.common;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Charsets;
+import com.google.common.io.Resources;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.net.URL;
 import java.nio.file.Paths;
 
 public class Config {
@@ -31,14 +30,10 @@ public class Config {
     }
 
     public static Config readFromConfigFile() throws IOException {
-        Path path = Paths.get(CONFIG_FILENAME);
-        byte[] bytes = Files.readAllBytes(path);
-        String content = new String(bytes, StandardCharsets.UTF_8);
+        URL resource = Resources.getResource(CONFIG_FILENAME);
+        String content = Resources.toString(resource, Charsets.UTF_8);
 
-        return new ObjectMapper()
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                .reader(Config.class)
-                .readValue(content);
+        return new ObjectMapper().reader(Config.class).readValue(content);
     }
 
     public String getTrelloKey() {
