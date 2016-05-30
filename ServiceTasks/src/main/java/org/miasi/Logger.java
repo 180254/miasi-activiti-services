@@ -1,5 +1,7 @@
 package org.miasi;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,8 +29,12 @@ public class Logger {
 
     public void log(Object message) {
         try {
-            Path path = Paths.get(loggerName + "log.txt");
+            Path path = Paths.get("ST_Log_" + loggerName + ".txt");
             String message2 = loggerId + "-" + message.toString();
+
+            if (message instanceof Throwable) {
+                message2 = message2 + "\r\n" + ExceptionUtils.getStackTrace((Throwable) message);
+            }
 
             List<String> strings = Collections.singletonList(message2);
             Files.write(path, strings, UTF_8, APPEND, CREATE);

@@ -1,4 +1,4 @@
-package org.miasi.trello.status;
+package org.miasi.trello.status.abstract1;
 
 import com.julienvey.trello.Trello;
 import com.julienvey.trello.domain.Board;
@@ -23,11 +23,11 @@ public class TrelloStatus {
         logger = Logger.forClass(TrelloStatus.class);
         logger.log("New instance started.");
 
-        logger.log("Reading config.");
+        logger.log("Reading config. Expected in: " + Config.configPath());
         try {
             config = Config.readFromConfigFile();
         } catch (IOException ex) {
-            logger.log("Unable to read config. Expected in: " + Config.configPath());
+            logger.log("Unable to read config.");
             logger.log(ex);
             throw ex;
         }

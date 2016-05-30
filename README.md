@@ -9,13 +9,13 @@ In order to use this project in Activiti, you have to follow these steps:<br/>
 ServiceTasks must be configured by config.json.<br/>
 Sample config.json is provided as config-sample.json.<br/>
 config.json must be in folder, from which app is started.<br/>
-logs will be available in files: <java_class_name>.log.txt<br/>
+logs will be available in files: ST_Log_java-class-name.txt<br/>
 <br/>
 example, in console:<br/>
 current path: cd C:\Users\Adrian\Desktop\apache-tomcat-8.0.33<br/>
 start tomcat by command: bin\startup.bat<br/>
 config.json path: C:\Users\Adrian\Desktop\apache-tomcat-8.0.33\config.json<br/>
-logs path: C:\Users\Adrian\Desktop\apache-tomcat-8.0.33\\*.log.txt<br/>
+logs path: C:\Users\Adrian\Desktop\apache-tomcat-8.0.33\\ST_Log_*.txt<br/>
 <br/>
 ## TrelloStatus ##
 TrelloStatus use "trello_card_id" variable. This variable is created automatically by TaskCreator.<br/>
