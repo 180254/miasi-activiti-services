@@ -27,7 +27,7 @@ public class Logger {
 
     public void log(Object message) {
         try {
-            Path path = Paths.get(loggerName + ".txt");
+            Path path = Paths.get(loggerName + "log.txt");
             String message2 = loggerId + "-" + message.toString();
 
             List<String> strings = Collections.singletonList(message2);
