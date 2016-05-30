@@ -1,10 +1,14 @@
+config.json
+
+
+
 # IntelliJ
 .idea/
 *.iws
-/out/
+out/
 .idea_modules/
 
-## Maven
+# Maven
 target/
 pom.xml.tag
 pom.xml.releaseBackup
