@@ -44,3 +44,4 @@ local.properties
 .texlipse
 .springBeans
 .recommenders/
+*.classpath
