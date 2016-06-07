@@ -16,13 +16,16 @@ public class Config {
 
     private final String trelloKey;
     private final String trelloToken;
+	private final String githubAddress;
 
     @JsonCreator
     public Config(@JsonProperty("trelloKey") String trelloKey,
-                  @JsonProperty("trelloToken") String trelloToken) {
+                  @JsonProperty("trelloToken") String trelloToken,
+				  @JsonProperty("githubAddress") String githubAddress) {
 
         this.trelloKey = trelloKey;
         this.trelloToken = trelloToken;
+		this.githubAddress = githubAddress;
     }
 
     public static String configPath() {
@@ -43,4 +46,8 @@ public class Config {
     public String getTrelloToken() {
         return trelloToken;
     }
+	
+	public String getGithubAddress() {
+		return githubAddress;
+	}
 }
