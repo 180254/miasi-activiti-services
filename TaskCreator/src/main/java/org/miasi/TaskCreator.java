@@ -133,6 +133,7 @@ public class TaskCreator {
             Card cardCreated = tList.createCard(card);
 
             Map<String, String> metadataForActivity = ImmutableMap.of(
+                    "task_name", nameField.getText(),
                     "task_creator_email", emailField.getText(),
                     "trello_card_url", cardCreated.getUrl(),
                     "trello_card_id", cardCreated.getId());
