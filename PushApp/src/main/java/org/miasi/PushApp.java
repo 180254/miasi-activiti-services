@@ -7,6 +7,8 @@ import org.apache.http.Header;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.message.BasicHeader;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.miasi.config.Config;
@@ -31,6 +33,8 @@ public class PushApp {
     private JTextArea statusArea;
     private JButton refreshButton;
     private JScrollPane scrollArea;
+    private JTextField githubLogin;
+    private JPasswordField githubPassword;
 
     public static void main(String[] args) {
         PushApp pushApp = new PushApp();
@@ -156,13 +160,15 @@ public class PushApp {
     }
 
     // --------------------------------------------------------------------------------------------
-    
+
     private void action$onRefreshButtonClicked() {
+        log("Clicked: refresh");
         action$refreshTasks();
     }
 
     private void action$onPushButtonClicked() {
-
+        log("Clicked: push");
+        action$push();
     }
 
     private void action$onTaskSelected() {
@@ -190,9 +196,26 @@ public class PushApp {
 
         } catch (Exception ex) {
             log("Exception. ", ExceptionUtils.getStackTrace(ex));
-            log("Something go wrong. Try refresh tasks.");
+            log("Something went wrong. Try refresh tasks.");
 
         } finally {
+            refreshButton.setEnabled(true);
+        }
+    }
+
+    public void action$push() {
+        try {
+            refreshButton.setEnabled(false);
+            pushButton.setEnabled(false);
+
+            git$push();
+
+        } catch (Exception ex) {
+            log("Exception. ", ExceptionUtils.getStackTrace(ex));
+            log("Something went wrong. Maybe try again?");
+
+        } finally {
+            pushButton.setEnabled(true);
             refreshButton.setEnabled(true);
         }
     }
@@ -236,6 +259,7 @@ public class PushApp {
                 tasks.add(task);
             }
 
+            log("Activity: retrieving tasks ... done");
             return tasks;
 
         } catch (Exception e) {
@@ -275,10 +299,15 @@ public class PushApp {
     // --------------------------------------------------------------------------------------------
 
     public void git$push() throws GitException {
-        File gitRepo = new File(config.getGitPath());
+        log("Git: pushing to remote ...");
 
-        try (Git git = Git.open(gitRepo)) {
-            git.push().call();
+        CredentialsProvider cred = new UsernamePasswordCredentialsProvider(
+                githubLogin.getText(), githubPassword.getPassword()
+        );
+
+        try (Git git = Git.open(init$gitRepo())) {
+            git.push().setCredentialsProvider(cred).call();
+            log("Git: pushing to remote ... done");
         } catch (Exception e) {
             throw new GitException(e);
         }
