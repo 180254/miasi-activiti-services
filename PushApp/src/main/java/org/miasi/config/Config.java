@@ -18,19 +18,22 @@ public class Config {
     private final String activityPassword;
     private final String activityProcessName;
     private final String activityPushTaskId;
+    private final String gitPath;
 
     @JsonCreator
     public Config(@JsonProperty("activityRestUrl") String activityRestUrl,
                   @JsonProperty("activityUsername") String activityUsername,
                   @JsonProperty("activityPassword") String activityPassword,
                   @JsonProperty("activityProcessName") String activityProcessName,
-                  @JsonProperty("activityPushTaskId") String activityPushTaskId) {
+                  @JsonProperty("activityPushTaskId") String activityPushTaskId,
+                  @JsonProperty("gitPath") String gitPath) {
 
         this.activityRestUrl = activityRestUrl;
         this.activityUsername = activityUsername;
         this.activityPassword = activityPassword;
         this.activityProcessName = activityProcessName;
         this.activityPushTaskId = activityPushTaskId;
+        this.gitPath = gitPath;
     }
 
     public static Config readFromConfigFile() throws IOException {
@@ -57,5 +60,9 @@ public class Config {
 
     public String getActivityPushTaskId() {
         return activityPushTaskId;
+    }
+
+    public String getGitPath() {
+        return gitPath;
     }
 }

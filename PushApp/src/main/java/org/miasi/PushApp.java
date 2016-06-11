@@ -6,10 +6,13 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.Header;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.message.BasicHeader;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.miasi.config.Config;
 import org.miasi.exception.ActivityException;
+import org.miasi.exception.GitException;
 import org.miasi.model.Task;
 import org.unbescape.uri.UriEscape;
 
@@ -17,6 +20,7 @@ import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +64,7 @@ public class PushApp {
     }
 
     private void init() {
+        // set action listeners
         refreshButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -95,6 +100,7 @@ public class PushApp {
             }
         });
 
+        // load config
         try {
             config = Config.readFromConfigFile();
 
@@ -105,6 +111,30 @@ public class PushApp {
             String msg = "Error!\n" +
                     "Config file doesn't exist or has bad structure.\n" +
                     "Please fix it and rebuild app.";
+
+            statusArea.append(msg);
+            JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // verify is git repo
+        File gitRepo = new File(config.getGitPath());
+        try (Git git = Git.open(gitRepo)) {
+            if (git.remoteList().call().isEmpty()) {
+                throw new GitException("no remote found");
+            }
+        } catch (IOException | GitAPIException | GitException e) {
+            pushButton.setEnabled(true);
+            pushButton.setText("GIT ERROR");
+
+            String msg = "Error!\n" +
+                    "Unable to verify git repo.\n" +
+                    "Configured repo path: " + gitRepo.getPath() + "\n" +
+                    "Configured repo path (absolute): " + gitRepo.getAbsolutePath() + "\n" +
+                    "Double check if: \n" +
+                    "- given path is git repo,\n" +
+                    "- remote url is specified.\n" +
+                    "Please fix it and rebuild/restart app.";
 
             statusArea.append(msg);
             JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE);

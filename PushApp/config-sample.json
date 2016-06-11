@@ -1,2 +1,8 @@
 {
+  "activityRestUrl": "http://127.0.0.1:8080/activiti-rest/",
+  "activityUsername": "kermit",
+  "activityPassword": "kermit",
+  "activityProcessName": "ErrorHandling",
+  "activityPushTaskId": "id_push",
+  "gitPath": "."
 }
