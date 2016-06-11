@@ -1,10 +1,12 @@
 package org.miasi;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.BaseEncoding;
-import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.Header;
 import org.apache.http.client.fluent.Request;
+import org.apache.http.entity.ContentType;
 import org.apache.http.message.BasicHeader;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.transport.CredentialsProvider;
@@ -22,8 +24,10 @@ import javax.swing.text.BadLocationException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class PushApp {
 
@@ -46,11 +50,11 @@ public class PushApp {
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
 
-        try {
-            UIManager.setLookAndFeel(WindowsLookAndFeel.class.getName());
-        } catch (ClassNotFoundException | InstantiationException |
-                UnsupportedLookAndFeelException | IllegalAccessException ignored) {
-        }
+//        try {
+//            UIManager.setLookAndFeel(WindowsLookAndFeel.class.getName());
+//        } catch (ClassNotFoundException | InstantiationException |
+//                UnsupportedLookAndFeelException | IllegalAccessException ignored) {
+//        }
 
         pushApp.init();
     }
@@ -161,22 +165,22 @@ public class PushApp {
 
     // --------------------------------------------------------------------------------------------
 
-    private void action$onRefreshButtonClicked() {
+    public void action$onRefreshButtonClicked() {
         log("Clicked: refresh");
         action$refreshTasks();
     }
 
-    private void action$onPushButtonClicked() {
+    public void action$onPushButtonClicked() {
         log("Clicked: push");
         action$push();
     }
 
-    private void action$onTaskSelected() {
+    public void action$onTaskSelected() {
         log("Task selected, item=", tasksCombo.getSelectedItem());
     }
 
     public void action$refreshTasks() {
-        log("Refresh: start.");
+        log("Action-refresh: start.");
 
         try {
             refreshButton.setEnabled(false);
@@ -189,10 +193,10 @@ public class PushApp {
 
             if (!tasks.isEmpty()) {
                 log("Task selected, item=", tasksCombo.getSelectedItem());
+                pushButton.setEnabled(true);
             }
 
-            pushButton.setEnabled(true);
-            log("Refresh: done.");
+            log("Action-refresh: done.");
 
         } catch (Exception ex) {
             log("Exception. ", ExceptionUtils.getStackTrace(ex));
@@ -204,19 +208,32 @@ public class PushApp {
     }
 
     public void action$push() {
+        log("Action-push: start.");
+
         try {
             refreshButton.setEnabled(false);
             pushButton.setEnabled(false);
 
+            Task task = (Task) tasksCombo.getSelectedItem();
+
             git$push();
+            activity$completeTask(task.getId());
+            action$refreshTasks();
+
+            log("Action-push: done.");
+            JOptionPane.showMessageDialog(null,
+                    "Successfully done.",
+                    "OK", JOptionPane.INFORMATION_MESSAGE);
 
         } catch (Exception ex) {
             log("Exception. ", ExceptionUtils.getStackTrace(ex));
             log("Something went wrong. Maybe try again?");
 
         } finally {
-            pushButton.setEnabled(true);
             refreshButton.setEnabled(true);
+            if (tasksCombo.getModel().getSize() > 0) {
+                pushButton.setEnabled(true);
+            }
         }
     }
 
@@ -268,7 +285,7 @@ public class PushApp {
     }
 
     public String activity$getTaskName(String taskId) throws ActivityException {
-        log("Activity: retrieving task name, id=", taskId);
+        log("Activity: retrieving task name ..., id=", taskId);
 
         String taskVars = String.format(
                 "%s/service/runtime/tasks/%s/variables",
@@ -285,12 +302,38 @@ public class PushApp {
             for (int i = 0; i < data.length(); i++) {
                 JSONObject object = data.getJSONObject(i);
                 if (object.getString("name").equals("task_name")) {
+                    log("Activity: retrieving task name ... done, id=", taskId);
                     return object.getString("value");
                 }
             }
 
             throw new IllegalStateException("no such task");
 
+        } catch (Exception e) {
+            throw new ActivityException(e);
+        }
+    }
+
+    public void activity$completeTask(String taskId) throws ActivityException {
+        log("Activity: completing task ..., id=", taskId);
+
+        String taskUrl = String.format(
+                "%s/service/runtime/tasks/%s",
+                config.getActivityRestUrl(),
+                UriEscape.escapeUriPathSegment(taskId));
+
+        try {
+            Map<String, ?> param = ImmutableMap.of(
+                    "action", "complete",
+                    "variables", new Object[]{});
+            String paramJson = toJson(Map.class, param);
+
+            Request.Post(taskUrl)
+                    .addHeader(activity$getAuthHeader(config))
+                    .bodyString(paramJson, ContentType.APPLICATION_JSON)
+                    .execute().returnContent().asString();
+
+            log("Activity: completing task ... done, id=", taskId);
         } catch (Exception e) {
             throw new ActivityException(e);
         }
@@ -307,6 +350,7 @@ public class PushApp {
 
         try (Git git = Git.open(init$gitRepo())) {
             git.push().setCredentialsProvider(cred).call();
+
             log("Git: pushing to remote ... done");
         } catch (Exception e) {
             throw new GitException(e);
@@ -315,7 +359,7 @@ public class PushApp {
 
     // --------------------------------------------------------------------------------------------
 
-    private void log(Object... str) {
+    public void log(Object... str) {
         for (Object o : str) {
             statusArea.append(o.toString());
 
@@ -328,4 +372,13 @@ public class PushApp {
         }
     }
 
+    // --------------------------------------------------------------------------------------------
+
+    public static <T> String toJson(Class<T> clazz, T obj) throws IOException {
+        try {
+            return new ObjectMapper().writerFor(clazz).writeValueAsString(obj);
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
+    }
 }
