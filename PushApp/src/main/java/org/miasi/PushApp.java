@@ -2,6 +2,7 @@ package org.miasi;
 
 import com.google.common.io.BaseEncoding;
 import com.sun.java.swing.plaf.windows.WindowsLookAndFeel;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.Header;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.message.BasicHeader;
@@ -13,6 +14,9 @@ import org.miasi.model.Task;
 import org.unbescape.uri.UriEscape;
 
 import javax.swing.*;
+import javax.swing.text.BadLocationException;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +28,7 @@ public class PushApp {
     private JButton pushButton;
     private JTextArea statusArea;
     private JButton refreshButton;
+    private JScrollPane scrollArea;
 
     public static void main(String[] args) {
         PushApp pushApp = new PushApp();
@@ -42,17 +47,54 @@ public class PushApp {
         }
 
         pushApp.init();
-
     }
 
     private Config config;
 
     public PushApp() {
+        log("App started. Please wait. Initializing ...");
+
         refreshButton.setEnabled(false);
+        pushButton.setEnabled(false);
         statusArea.setEditable(false);
     }
 
     private void init() {
+        refreshButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        onRefreshButtonClicked();
+                    }
+                }).start();
+            }
+        });
+
+        pushButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        onPushButtonClicked();
+                    }
+                }).start();
+            }
+        });
+        tasksCombo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        onTaskSelected();
+                    }
+                }).start();
+            }
+        });
+
         try {
             config = Config.readFromConfigFile();
 
@@ -68,12 +110,48 @@ public class PushApp {
             JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
+
+        refreshTasks();
+    }
+
+
+    private void onRefreshButtonClicked() {
+        refreshTasks();
+    }
+
+    private void onPushButtonClicked() {
+
+    }
+
+    private void onTaskSelected() {
+        log("Task selected, item=", tasksCombo.getSelectedItem());
+    }
+
+    public void refreshTasks() {
+        log("Refresh: start.");
+
         try {
-            List<Task> tasks = activity$getPushTasks(config);
-            Task[] tasks1 = tasks.toArray(new Task[tasks.size()]);
-            tasksCombo.setModel(new DefaultComboBoxModel<Task>(tasks1));
+            refreshButton.setEnabled(false);
+            pushButton.setEnabled(false);
+
+            List<Task> tasks = activity$getPushTasks();
+            Task[] tasksArray = tasks.toArray(new Task[tasks.size()]);
+            ComboBoxModel<Task> taskModel = new DefaultComboBoxModel<>(tasksArray);
+            tasksCombo.setModel(taskModel);
+
+            if (!tasks.isEmpty()) {
+                log("Task selected, item=", tasksCombo.getSelectedItem());
+            }
+
+            pushButton.setEnabled(true);
+            log("Refresh: done.");
+
         } catch (Exception ex) {
-            System.out.println(ex);
+            log("Exception. ", ExceptionUtils.getStackTrace(ex));
+            log("Something go wrong. Try refresh tasks.");
+
+        } finally {
+            refreshButton.setEnabled(true);
         }
     }
 
@@ -84,7 +162,9 @@ public class PushApp {
         return new BasicHeader("Authorization", headerVal);
     }
 
-    public static List<Task> activity$getPushTasks(Config config) throws ActivityException {
+    public List<Task> activity$getPushTasks() throws ActivityException {
+        log("Activity: retrieving tasks ...");
+
         String taskInfoUrl = String.format(
                 "%s/service/runtime/tasks?taskDefinitionKey=%s",
                 config.getActivityRestUrl(),
@@ -101,12 +181,14 @@ public class PushApp {
             List<Task> tasks = new ArrayList<>();
 
             for (int i = 0; i < data.length(); i++) {
+                log("Activity: retrieving tasks ... ", i + 1, "/", data.length());
+
                 Task task = new Task();
                 JSONObject taskObject = data.getJSONObject(i);
 
                 task.setId(taskObject.getString("id"));
                 task.setDeveloper(taskObject.getString("assignee"));
-                task.setName(activity$getTaskName(config, task.getId()));
+                task.setName(activity$getTaskName(task.getId()));
                 tasks.add(task);
             }
 
@@ -117,7 +199,9 @@ public class PushApp {
         }
     }
 
-    public static String activity$getTaskName(Config config, String taskId) throws ActivityException {
+    public String activity$getTaskName(String taskId) throws ActivityException {
+        log("Activity: retrieving task name, id=", taskId);
+
         String taskVars = String.format(
                 "%s/service/runtime/tasks/%s/variables",
                 config.getActivityRestUrl(),
@@ -143,4 +227,18 @@ public class PushApp {
             throw new ActivityException(e);
         }
     }
+
+    private void log(Object... str) {
+        for (Object o : str) {
+            statusArea.append(o.toString());
+
+        }
+        statusArea.append("\n");
+
+        try {
+            statusArea.setCaretPosition(statusArea.getLineStartOffset(statusArea.getLineCount() - 1));
+        } catch (BadLocationException ignored) {
+        }
+    }
+
 }
