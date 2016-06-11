@@ -7,7 +7,6 @@ import org.apache.http.Header;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.message.BasicHeader;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.miasi.config.Config;
@@ -21,7 +20,6 @@ import javax.swing.text.BadLocationException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,15 +61,48 @@ public class PushApp {
         statusArea.setEditable(false);
     }
 
-    private void init() {
-        // set action listeners
+    // --------------------------------------------------------------------------------------------
+
+    public void init() {
+        init$actionListeners();
+
+        try {
+            init$config();
+        } catch (Exception ex) {
+            init$error("CONFIG ERROR", "Error!\n" +
+                    "Config file doesn't exist or has bad structure.\n" +
+                    "Please fix it and rebuild app.");
+            return;
+        }
+
+        try {
+            init$verifyRepo();
+        } catch (Exception e) {
+            File repo = init$gitRepo();
+            init$error("CONFIG ERROR", "Error!\n" +
+                    "Unable to verify git repo.\n" +
+                    "Configured repo path: " + repo.getPath() + "\n" +
+                    "Configured repo path (absolute): " + repo.getAbsolutePath() + "\n" +
+                    "Double check if: \n" +
+                    "- given path is git repo,\n" +
+                    "- remote url is specified.\n" +
+                    "Please fix it and rebuild/restart app.");
+            return;
+        }
+
+        action$refreshTasks();
+    }
+
+    // --------------------------------------------------------------------------------------------
+
+    public void init$actionListeners() {
         refreshButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        onRefreshButtonClicked();
+                        action$onRefreshButtonClicked();
                     }
                 }).start();
             }
@@ -83,7 +114,7 @@ public class PushApp {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        onPushButtonClicked();
+                        action$onPushButtonClicked();
                     }
                 }).start();
             }
@@ -94,70 +125,51 @@ public class PushApp {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        onTaskSelected();
+                        action$onTaskSelected();
                     }
                 }).start();
             }
         });
+    }
 
-        // load config
-        try {
-            config = Config.readFromConfigFile();
+    public void init$config() throws Exception {
+        config = Config.readFromConfigFile();
+    }
 
-        } catch (IOException | IllegalArgumentException ex) {
-            pushButton.setEnabled(true);
-            pushButton.setText("CONFIG ERROR");
+    public File init$gitRepo() {
+        return new File(config.getGitPath());
+    }
 
-            String msg = "Error!\n" +
-                    "Config file doesn't exist or has bad structure.\n" +
-                    "Please fix it and rebuild app.";
-
-            statusArea.append(msg);
-            JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // verify is git repo
-        File gitRepo = new File(config.getGitPath());
-        try (Git git = Git.open(gitRepo)) {
+    public void init$verifyRepo() throws Exception {
+        try (Git git = Git.open(init$gitRepo())) {
             if (git.remoteList().call().isEmpty()) {
                 throw new GitException("no remote found");
             }
-        } catch (IOException | GitAPIException | GitException e) {
-            pushButton.setEnabled(true);
-            pushButton.setText("GIT ERROR");
-
-            String msg = "Error!\n" +
-                    "Unable to verify git repo.\n" +
-                    "Configured repo path: " + gitRepo.getPath() + "\n" +
-                    "Configured repo path (absolute): " + gitRepo.getAbsolutePath() + "\n" +
-                    "Double check if: \n" +
-                    "- given path is git repo,\n" +
-                    "- remote url is specified.\n" +
-                    "Please fix it and rebuild/restart app.";
-
-            statusArea.append(msg);
-            JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE);
-            return;
         }
-
-        refreshTasks();
     }
 
-
-    private void onRefreshButtonClicked() {
-        refreshTasks();
+    public void init$error(String type, String msg) {
+        pushButton.setEnabled(true);
+        pushButton.setText(type);
+        statusArea.append(msg);
+        JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
-    private void onPushButtonClicked() {
+    // --------------------------------------------------------------------------------------------
+    
+    private void action$onRefreshButtonClicked() {
+        action$refreshTasks();
+    }
+
+    private void action$onPushButtonClicked() {
 
     }
 
-    private void onTaskSelected() {
+    private void action$onTaskSelected() {
         log("Task selected, item=", tasksCombo.getSelectedItem());
     }
 
-    public void refreshTasks() {
+    public void action$refreshTasks() {
         log("Refresh: start.");
 
         try {
@@ -184,6 +196,8 @@ public class PushApp {
             refreshButton.setEnabled(true);
         }
     }
+
+    // --------------------------------------------------------------------------------------------
 
     public static Header activity$getAuthHeader(Config config) {
         String activityBasic = config.getActivityUsername() + ":" + config.getActivityPassword();
@@ -257,6 +271,20 @@ public class PushApp {
             throw new ActivityException(e);
         }
     }
+
+    // --------------------------------------------------------------------------------------------
+
+    public void git$push() throws GitException {
+        File gitRepo = new File(config.getGitPath());
+
+        try (Git git = Git.open(gitRepo)) {
+            git.push().call();
+        } catch (Exception e) {
+            throw new GitException(e);
+        }
+    }
+
+    // --------------------------------------------------------------------------------------------
 
     private void log(Object... str) {
         for (Object o : str) {
