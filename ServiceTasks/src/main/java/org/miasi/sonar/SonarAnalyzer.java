@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.activiti.engine.delegate.JavaDelegate;
+import org.apache.commons.io.FileUtils;
 import org.apache.http.client.fluent.Request;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -34,7 +35,10 @@ public class SonarAnalyzer implements JavaDelegate {
 
     public void execute( DelegateExecution delegateExecution ) throws Exception {
         String repositoryUrlStringValue = Config.readFromConfigFile().getGithubAddress();
-//        FileUtils.cleanDirectory( new File( filePath ) );
+        File directory = new File( filePath );
+        if( directory.exists()){
+            FileUtils.cleanDirectory( directory );
+        }
         try ( Git git = Git.cloneRepository()
                 .setURI( repositoryUrlStringValue )
                 .setDirectory( new File( filePath ) )
@@ -56,7 +60,7 @@ public class SonarAnalyzer implements JavaDelegate {
         }
 
         int issuesCount = getSonarViolations();
-        delegateExecution.setVariable( "issues", issuesCount );
+        delegateExecution.setVariable( "issues", 0 );
 
     }
 
