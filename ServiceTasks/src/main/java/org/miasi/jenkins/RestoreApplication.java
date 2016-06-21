@@ -7,6 +7,7 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 
 // copy backup dir back to deploy dir
+// throws exception if fail
 public class RestoreApplication implements JavaDelegate {
 
     public void execute(DelegateExecution delegateExecution) throws Exception {
