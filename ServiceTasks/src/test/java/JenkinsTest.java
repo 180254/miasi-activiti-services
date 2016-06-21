@@ -7,7 +7,7 @@ public class JenkinsTest {
 
     public DelegateExecution deMock = Mockito.mock(DelegateExecution.class);
 
-    public boolean doRestore = true;
+    public boolean doRestore = false;
 
     @Test
     public void test() throws Exception {

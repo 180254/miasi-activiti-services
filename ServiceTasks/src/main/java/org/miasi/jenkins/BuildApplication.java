@@ -1,14 +1,13 @@
 package org.miasi.jenkins;
 
+import java.io.IOException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.activiti.engine.delegate.JavaDelegate;
 import org.activiti.engine.impl.util.json.JSONObject;
 import org.apache.http.client.fluent.Request;
 import org.awaitility.Awaitility;
-
-import java.io.IOException;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 
 public class BuildApplication implements JavaDelegate {
 
@@ -35,15 +34,22 @@ public class BuildApplication implements JavaDelegate {
                         return isBuilding(statusUrl);
                     }
                 });
+        
+        Thread.sleep( 500);
+        delegateExecution.setVariable( "buildFailed", false);
     }
 
     public static boolean isBuilding(String statusUrl) throws IOException {
-        String response = Request.Get(statusUrl)
-                .addHeader(JenkinsConfig.authHeader())
-                .execute().returnContent().asString();
+        try {
+            String response = Request.Get(statusUrl)
+                    .addHeader(JenkinsConfig.authHeader())
+                    .execute().returnContent().asString();
 
-        JSONObject json = new JSONObject(response);
-        return json.getBoolean("building");
+            JSONObject json = new JSONObject(response);
+            return json.getBoolean("building");
+        } catch(Exception e) {
+            return false;
+        }
     }
 
 }
