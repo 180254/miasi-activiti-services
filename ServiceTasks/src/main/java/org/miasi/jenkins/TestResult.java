@@ -12,7 +12,6 @@ public class TestResult implements JavaDelegate {
     @Override
     public void execute(DelegateExecution de) throws Exception {
         try {
-            de.setVariable("reassignTaskToDeveloper", false);
 
             String buildId = (String) de.getVariable("jenkins_build_id");
             String resultUrl = JenkinsConfig.JENKINS_TASK_URL
