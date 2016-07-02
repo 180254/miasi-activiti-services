@@ -1,13 +1,17 @@
-## konfiguracja, co i jak
+## Konfiguracja i uruchomienie
 <br/>
 1. Activity<br/>
-Model Activity się w pliku ErrorHandling.bpmn20.xml.<br/>
+Model Activity znajduje się w pliku ErrorHandling.bpmn20.xml.<br/>
+1.1 Zainstaluj i skonfiguruj Tomcata zgodnie z instrukcją laboratoryjną.<br/>
+1.2 Wdróż na Tomcata webowe aplikacje Activiti-Explorer i Activiti-Rest zgodnie z instrukcją laboratoryjną (obie muszą komunikować się z tą samą bazą danych)<br/>
 <br/>
 2. Trello<br/>
-2.1 Board na Trello musi zawierać listy o nazwach: New, Development, Review, Test, Deploy, Done<br/>
+2.1 Utwórz nowy Board<br/>
+2.2 Board na Trello musi zawierać listy o nazwach: New, Development, Review, Test, Deploy, Done<br/>
+2.3 Wygeneruj klucz i token do koumunikacji za pomocą Restowego API <br/>
 <br/>
 3. SonarCube<br/>
-?<br/>
+3.1 Zainstaluj aplikację SonarQube zgodnie z instrukcjami podanymi na stronie producenta<br/>
 <br/>
 4. Jenkins<br/>
 4.1 Konfiguracja zadania znajduje się na zrzucie w pliku ServiceTasks\jenkins_job_conf.png<br/>
@@ -40,4 +44,9 @@ Model Activity się w pliku ErrorHandling.bpmn20.xml.<br/>
 6.6 Jar należy użyć jako biblioteki w activity-explorer|rest, kopiując plik target\service-tasks-0.1-jar-with-dependencies.jar do:<br/>
 ~ {Tomcat-path}/webapps/activiti-explorer/WEB-INF/lib directory<br/>
 ~ {Tomcat-path}/webapps/activiti-rest/WEB-INF/lib directory<br/>
+<br/>
+7. Uruchomienie<br/>
+7.1 Uruchom serwer bazy danych oraz Tomcata<br/>
+7.2 Zaloguj się do aplikacji Activiti-Explorer<br/>
+7.3 Zaimportuj model procesu i wdróż go<br/>
 <br/>
