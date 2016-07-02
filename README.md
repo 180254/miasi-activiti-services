@@ -45,8 +45,11 @@ Model Activity znajduje się w pliku ErrorHandling.bpmn20.xml.<br/>
 ~ {Tomcat-path}/webapps/activiti-explorer/WEB-INF/lib directory<br/>
 ~ {Tomcat-path}/webapps/activiti-rest/WEB-INF/lib directory<br/>
 <br/>
-7. Uruchomienie<br/>
-7.1 Uruchom serwer bazy danych oraz Tomcata<br/>
-7.2 Zaloguj się do aplikacji Activiti-Explorer<br/>
-7.3 Zaimportuj model procesu i wdróż go<br/>
+7. Serwer e-mail<br/>
+7.1 Zainstalować i uruchomić lokalny serwer em-ail (np. Papercut)<br/>
+<br/>
+8. Uruchomienie<br/>
+8.1 Uruchom serwer bazy danych oraz Tomcata<br/>
+8.2 Zaloguj się do aplikacji Activiti-Explorer<br/>
+8.3 Zaimportuj model procesu i wdróż go<br/>
 <br/>
